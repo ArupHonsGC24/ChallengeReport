@@ -1,0 +1,140 @@
+% Using the memoir class.
+\documentclass[a4paper,12pt,oneside,openany]{memoir}
+
+% Packages
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[british]{babel}
+\usepackage[style=ieee]{biblatex}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{soul}
+\usepackage{amsmath}
+\usepackage{xfrac}
+\usepackage{graphicx}
+\usepackage{svg}
+\usepackage{xcolor}
+\usepackage{minted}
+\usepackage{siunitx}
+\usepackage[style=british]{csquotes}
+\usepackage{wrapfig}
+\usepackage{tabularray}
+\usepackage[linesnumbered,vlined,algoruled]{algorithm2e}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage[all]{hypcap}
+\usepackage[nameinlink]{cleveref}
+
+% Bibliography
+\addbibresource{references.bib}
+% Biblatex doesn't know about artwork type, so treat as misc.
+\DeclareBibliographyAlias{artwork}{misc}
+
+% Formating
+\DoubleSpacing
+\chapterstyle{bianchi}
+\setlrmarginsandblock{2.5cm}{2.5cm}{*}
+\setulmarginsandblock{2.5cm}{*}{1}
+\setlength{\beforechapskip}{-2cm}
+\newlength{\drop}
+\captionnamefont{\small}
+\captiontitlefont{\small}
+\SetAlCapSkip{1em}
+\setlength{\interspacetitleruled}{6pt}
+\checkandfixthelayout
+
+% Setup
+\graphicspath{ {./images/} }
+\hypersetup{hidelinks}
+\UseTblrLibrary{booktabs}
+\usetikzlibrary{tikzmark}
+\MakeOuterQuote{"}
+
+\pgfplotsset{width=10cm,compat=1.9}
+\usepgfplotslibrary{external}
+\tikzexternalize
+
+\crefname{algocf}{alg.}{algs.}
+\Crefname{algocf}{Algorithm}{Algorithms}
+\PrintSemicolon
+
+% Macros
+\newcommand*\mkup[2]{\pdfmarkupcomment[color=yellow]{#1}{#2}}
+\newcommand*\refandname[1]{\Cref{#1}: \nameref{#1}}
+\newcommand*\incexc[2]{\([#1,#2)\)}
+\newcommand*\BitOr{\mathbin{|}}
+\newcommand*\ShiftLeft{\ll}
+\definecolor{LightGrey}{gray}{0.9}
+\SetKw{KwForIn}{in}
+\SetKw{KwDoesNotContain}{does not contain}
+
+\makeatletter
+\newcommand\semiLarge{\@setfontsize\semiLarge{13.15}{15.18}}
+\makeatother
+
+% Patches
+\makeatletter
+\let\original@algocf@latexcaption\algocf@latexcaption
+\long\def\algocf@latexcaption#1[#2]{%
+  \@ifundefined{NR@gettitle}{%
+    \def\@currentlabelname{#2}%
+  }{%
+    \NR@gettitle{#2}%
+  }%
+  \original@algocf@latexcaption{#1}[{#2}]%
+}
+\makeatother
+
+% Main document
+\begin{document}
+
+% Use roman numbering for frontmatter.
+\frontmatter
+\pagenumbering{roman}
+
+% Title page.
+\input{preamble/titlepage.tex}
+
+% Use single spacing for TOC, LOF and LOT
+\SingleSpacing
+
+\tableofcontents*
+
+\vspace{2.5cm}
+\listoffigures
+\vspace{1.5cm}
+\listoftables
+
+% Use double spacing otherwise. 
+\DoubleSpacing
+
+% Acknowledgements.
+\input{preamble/acknowledgements}
+
+% Executive summary.
+\input{preamble/executive_summary}
+
+% Use arabic numbering for main content.
+\mainmatter
+\pagenumbering{arabic}
+
+\input{sections/1_introduction}
+
+\input{sections/2_background}
+
+\input{sections/3_model_construction}
+
+\input{sections/4_model_specification}
+
+\input{sections/5_case_study_melbourne}
+
+\input{sections/6_conclusion}
+
+\backmatter
+\pagenumbering{roman}
+\appendix
+\input{appendices}
+
+\printbibliography[title=References]
+\end{document}

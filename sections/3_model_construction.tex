@@ -1,0 +1,94 @@
+\chapter{Model Construction}
+\label{chap:ModelConstruction}
+
+\section{Preliminaries}
+The high-level purpose of the train utilisation model is to calculate granular service demand on a particular timetable based on origin-destination data.
+
+% More stuff in here about input and output? Different to thesis by including journey output?
+
+\subsection{High-level Approach}
+The design of the model uses an iterative replanning structure to converge on a stable solution. The high-level algorithm of the simulation consists of the following loop:
+% This is taken from verbatum from the original thesis.
+\begin{SingleSpacing}
+    \begin{enumerate}
+        \item Set the "crowding cost" of each transit service in the network to 0.
+        \item For each set of agent journeys in the input data, determine the transit services used and record the agents as populating the proportion of any trips they use.
+        \item Based on the utilisation, calculate a "crowding cost" associated with the transit services.
+        \item Go to step 2, or output results and halt.
+    \end{enumerate}
+\end{SingleSpacing}
+
+\subsection{Existing Work}
+The model is a comprehensive extension of the simulation framework completed in semester 1.
+
+\begin{SingleSpacing}
+    \begin{enumerate}
+        \item Network layout
+        \item Normal pathfinding
+        \item Assigning passenger counts
+        \item Visualisation
+    \end{enumerate}
+\end{SingleSpacing}
+
+%\subsection{Implementation Details}
+%The model was written in Rust, due to its focus on speed and reliability, as well as an ergonomic package ecosystem.
+
+\subsection{Extension to Full Model}
+To extend the framework to the full model, the following features were added.
+\begin{SingleSpacing}
+    \begin{enumerate}
+        \item Multi-criteria pathfinding 
+        \item Crowding cost functions 
+        \item Iterative replanning
+        \item OD Data import
+        \item User interface
+    \end{enumerate}
+\end{SingleSpacing}
+
+The various crowding cost functions used by the model are discussed in \Cref{chap:ModelSpec}.
+Additionally, the performance of the model is investigated in \Cref{sec:Performance}
+
+\section{Multi-Criteria Pathfinding}
+A core component of the replanning algorithm is determining routes for agents based on more than just earliest arrival time. Agents must be able to change their routes based on the crowding of the services. 
+
+This technique is called "multi-criteria pathfinding", where an additional cost is taken into account when determining routes. More precisely, the multi-criteria problem asks for a full Pareto-set of journeys leaving a given origin stop no earlier than a given departure time \cite{dellingRoundBasedPublicTransit2012}. 
+
+% TODO: Move to background? It is most relevent to this section.
+A Pareto-set is a set in which each element does not dominate any other - i.e., a tradeoff must be made to choose any over any other. A solution dominates another solution if it is strictly better in at least one criterion \cite{bergerAcceleratingTimeDependentMultiCriteria2009}.
+
+% TODO: more accurately, it's an inverse utility function? Because the utility is currently minimised.
+As such, the multi-criteria version of the pathfinding algorithm returns a set of different journeys, each with a different associated arrival time and crowding cost. A utility function is applied to each journey to determine which journey a particular agent will take.
+
+The fundamental different between single and multi-criteria algorithm designs is a matter of bookkeeping. During a single-criteria run, only the earliest arrival at a given stop need be recorded, corresponding to a single journey. However, during a multi-criteria run, at each stop a set of earliest arrival time and crowding cost pairs (called "labels") must be stored, which is considerably more complicated. Instead of a simple assignment to update a stop based on a newly found trip, the new label must be added to the list if it is non-dominated, and then remove any newly dominated labels previously in the set.
+
+The data structure that is generally used for recording these Pareto-optimal sets is a "bag", which is a generic (and fairly mundane) term for a set with specific allowed operations. Most general solutions involve dynamically allocating memory in a resizable array, but because these bag operations are extremely frequent during pathfinding they must be as efficient as possible. We can set an upper bound on the number of stored journeys, which discards labels based on some criteria and allows us to statically inline out array. For our purposes, the label with the latest arrival time is discarded because these are generally the least realistic (going to rather extraordinary lengths to avoid crowded services) but this could be replaced with a specific utility calculation.
+
+\section{Iterative Replanning}
+
+% TODO: Halting conditions
+
+\section{Data Import}
+
+\section{User Interface}
+
+\section{Performance}
+\label{sec:Performance}
+
+\begin{table}[ht]
+    \centering
+    \begin{tblr}{
+            colspec={lrrrr},
+        }
+        \toprule
+        Algorithm                             & Melbourne & Tokyo & London & Germany \\
+        \midrule
+        RAPTOR (\unit{\micro\s})              & 51        & 14    & 85     & 84533   \\
+        CSA    (\unit{\micro\s})              & 7         & 85    & 247    & 42886   \\
+        \(\sfrac{\text{RAPTOR}}{\text{CSA}}\) & 7.29      & 0.165 & 0.344  & 1.97    \\
+        \bottomrule
+    \end{tblr}
+    \caption[Pathfinding benchmarks]{Time to perform one pathfinding query across the network. Taken from the average of 5000 samples on a 4.5GHz core.}
+    \label{tab:PathfindingBenchmarks}
+\end{table}
+\vspace{-0.7cm}
+
