@@ -1,23 +1,203 @@
-\chapter{Model Specification}
+\chapter{Crowding Modelling}
 \label{chap:ModelSpec}
 
 \section{Crowding Cost}
+\label{sec:crowding_cost}
+While increasing PT usage is generally considered a net positive, an equilibrium must be struck between high PT use and the physical constraints that impact perception of service quality. Low crowding may suggest the transport network is underutilised, but as utilisation increases, high crowding may in turn disincentivise people from using PT more frequently \cite{luanPassengerorientedTrafficControl2022}. The timetabled frequency and routes can be adjusted to produce an equilibrium point between these factors that promotes sustainable growth of PT use. WoB enables the investigation of how timetable or network changes may influence the relationship between utilisation and crowding. 
 
-\section{Crowding Cost Function}
+Crowding cost functions define a relationship between the number of people on board a service and a numerical value representing the "perception" or subjective experience of crowdedness. Crowding cost is considered a high priority when people are evaluating the quality of PT and their likelihood to use it, yet it remains a relatively understudied area \cite{mohringOptimizationScaleEconomies1972, turveyOptimalBusFares1975}. In comparison, car congestion has been much more thoroughly studied and is better understood \cite{arnottEconomicsTrafficCongestion1994, johanssonOptimalRoadpricingSimultaneous1997}. One of the reasons for this disparity is the difficulty in conclusively defining and measuring crowding costs \cite{qinInvestigatingInVehicleCrowding2014}. Crowding cost can be interpreted in different ways, such as the utility of avoiding crowding, or a multiplier to perceived travel time. There are also a multitude of ways to quantify crowding, such as load factors and probability of a seat being available \cite{douglasEstimatingPassengerCost2006, yapCrowdingValuationUrban2020}.
 
+There are many studies highlighting the impact of crowding, as it affects service quality and satisfaction \cite{luanPassengerorientedTrafficControl2022}. Crowded services increase anxiety and stress, largely due to physical proximity, the possibility of being late to work and personal safety risks \cite{haywoodCrowdingPublicTransport2017, chengExploringPassengerAnxiety2010, evansCrowdingPersonalSpace2007, coxRailPassengerCrowding2006}.
+Beyond the personal implications, crowding also impacts service timeliness, as high passenger density can make it difficult for others to board or alight, elongating station dwell times, and impacting operating speed and travel time reliability \cite{tirachiniCrowdingPublicTransport2013}. The ideal combination of frequency, vehicle capacity, and fare cost can also be influenced by crowding levels. Therefore, the ability to account for crowding in PT modelling is particularly useful for broad applications in transport planning. 
+
+While crowding cost and the related functions are generalised and can be applied in any context, specific choices have been made in this project to tailor the model for use in Melbourne. As a result, this is not an extensive or exhaustive overview of crowding cost functions as it is intended to form the basis for informing the initial implementation of crowding in the model. 
+
+Choosing a specific crowding cost function is highly dependent on the geographical and social context in which the project is grounded and its overall aims. Other factors such as route options and service frequency can also influence perceptions of crowding. There is no single function that is superior in all cases. Since crowding cost is a numerical measurement of passengers' subjective perspective of the costs associated with crowded services, it can vary significantly between demographics. Ideally, the functions would be calibrated through discrete choice modelling on survey data (stated preference analysis) or analysis of travel patterns (revealed preference) collected from passengers \cite{yapCrowdingValuationUrban2020, tirachiniValuationSittingStanding2016, yapPublicTransportCrowding2023, celebiMeasuringCrowdingrelatedComfort2020}. However, undertaking research to empirically determine crowding costs was outside the scope of this project, which focuses on the model construction, as opposed to attempting to develop a rigorous understanding of crowding and its perception in Melbourne. However, including crowding in the model extends the modelling capabilities, allowing it to be used in more complex cases and elucidate more nuanced characteristics of travel behaviour. A general overview of the relevant functions and their feature was prioritised so that these functions could be implemented in the model. The parameters can then be further calibrated by end users if necessary. 
+
+There are various additional types of crowding associated with transport, but this model focuses specifically on in-vehicle crowding, defined as the number of people on train services. Other forms of crowding, such as station and platform crowding, are related but require different modelling capabilities and were therefore excluded from the project scope. 
+
+\section{Crowding Cost Functions}
+\label{sec:crowding_cost_functions}
+There are general constraints on crowding cost functions that are established across the literature. Representations of crowding cost must be specific to the PT mode as passengers on different modes perceive crowding differently \cite{qinInvestigatingInVehicleCrowding2014}. When taking long distance rail and bus services, a seat is usually expected and having to stand is a significant burden. However, on metropolitan services, people may not expect to have a seat and be willing to stand, and therefore place a lower value on sitting. Buses are also configured differently to trains and are much smaller, further widening the difference in perception of crowding between modes. Since WoB only considers the rail network, only rail-specific crowding cost functions have been implemented. 
+
+A basic property of crowding cost functions is that the crowding cost should increase monotonically with the number of passengers \cite{tianEquilibriumPropertiesMorning2007, qinInvestigatingInVehicleCrowding2014}. The crowding cost should not decrease for any increase in the number of passengers. This aligns with logical expectations as a passenger boarding will never reduce the level of crowding. An additional basic constraint is that the crowding cost should be zero when there are zero people on board, therefore crowding cost functions must pass through the origin \cite{tianEquilibriumPropertiesMorning2007}.  
+
+\subsection{Specific Functions}
+\label{subsec:crowding_functions}
+This section provides an overview of mathematical crowding cost functions from previous literature accompanied by discussion of their use in the context of this project. The four functions chosen to be implemented in the model can be grouped into two categories: simple mathematical functions and stepped models. For the purposes of visualising the functions, the seated capacity of an X'Trapolis 100 train was used as it is widely run across Melbourne's metropolitan train network \cite{metrotrainsmelbourneWTTNetworkConfiguration2023}. 
+
+\subsubsection{Simple Mathematical Functions}
+\label{subsubsec:crowding_simplemath}
+This group of simple mathematical functions only require service capacities as parameters. These functions assume a smooth relationship between patronage and crowding cost, and are simple to implement and manipulate for further mathematical analysis. They are also simple to calibrate as they only require the sitting and standing capacities of the trains. 
+
+\smallskip
+\noindent{\textbf{Linear}} 
+
+
+The first function is linear,
 \begin{equation}
     \label{eqn:linear}
-    y=\frac{1}{S+C}x
+    y=\frac{1}{S+T} x
 \end{equation}
+where $y$ is the crowding cost, $x$ is the number of people, $S$ is the seated capacity and $T$ is the standing capacity of each train (\Cref{fig:Crowding_linear}) \cite{klumpenhouwerCostcrowdingModelLight2016}. 
 
+Since the slope of this equation is entirely determined by the sitting and standing capacities, which should be known values, this is very easy to implement. There are no additional coefficients or parameters that need to be calibrated to match empirical measurements of crowding perception. This assumes that crowding cost increases uniformly as the number of passengers increases. The linear equation is best suited for cases where there are few seats, and therefore discomfort due to crowding is more directly linked to the number of people \cite{klumpenhouwerCostcrowdingModelLight2016}. It has also been suggested that a linear equation is not empirically supported by observations, in part because it is deterministic in assigning a constant crowding cost per person and it also assumes crowding is sufficiently smooth \cite{qinInvestigatingVehicleCrowding2014}. 
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                axis lines = left,
+                xlabel = Number of people,
+                xmin=0,
+                ylabel = Crowding cost,
+                ymin=0,
+                %legend pos=north west,
+            ]
+        \addplot[smooth,mark=.,purple] table [x=count, y=linear_cost, col sep=comma] {data/Functions/linear_model.csv};
+            \addlegendentry{Crowding cost}
+        \addplot[domain=0:2000, samples=2, dashed] coordinates {(432, 0) (432, 1.5)};
+        \addlegendentry{Seating capacity}
+        \addplot[domain=0:2000, samples=2, dotted] coordinates {(1232, 0) (1232, 1.5)};
+        \addlegendentry{Total capacity}
+        \end{axis}
+    \end{tikzpicture}
+    \caption[Graph of the linear crowding cost function]{Graph of the linear crowding cost function, $y=\frac{1}{S+T} x$,  where $y$ is the crowding cost, $x$ is the number of people, $S$ is the seated capacity and $T$ is the standing capacity of each train.}
+    \label{fig:Crowding_linear}
+\end{figure}
+
+\smallskip
+\noindent{\textbf{Quadratic}}
+
+
+The quadratic function accounts for the intuition that crowding cost should increase more slowly when there are fewer passengers on board (\Cref{fig:Crowding_quadratic}). It has the following form, with the same variables as the linear function \cite{klumpenhouwerCostcrowdingModelLight2016}
 \begin{equation}
     \label{eqn:quadratic}
-    y=\frac{1}{(S+C)^2}x^2
+    y=\frac{1}{(S+T)^2}x^2.
 \end{equation}
 
+In Figure \ref{fig:Crowding_quadratic}, the dotted line at $x=432$ shows the sitting capacity. In the region around this point, the slope of the function begins to increase, indicating crowding cost increasing more rapidly as the number of people increase. However, the behaviour of the function does not change at this point.
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                axis lines = left,
+                xlabel = Number of people,
+                xmin=0,
+                ylabel = Crowding cost,
+                ymin=0,
+                %legend pos=north west,
+            ]
+        \addplot[smooth,mark=.,purple] table [x=count, y=quadratic_cost, col sep=comma] {data/Functions/quadratic_model.csv};
+            \addlegendentry{Crowding cost}
+        \addplot[domain=0:2000, samples=2, dashed] coordinates {(432, 0) (432, 1.5)};
+        \addlegendentry{Seating capacity}
+        \addplot[domain=0:2000, samples=2, dotted] coordinates {(1232, 0) (1232, 1.5)};
+        \addlegendentry{Total capacity}
+        \end{axis}
+    \end{tikzpicture}
+    \caption[Graph of the quadratic crowding cost function]{Graph of the quadratic crowding cost function, $y=\frac{1}{(S+T)^2}x^2$,  where $y$ is the crowding cost, $x$ is the number of people, $S$ is the seated capacity and $T$ is the standing capacity of each train.}
+    \label{fig:Crowding_quadratic}
+\end{figure}
+
+\subsubsection{Stepped Models}
+\label{subsubsec:crowding_stepped}
+The second category of functions attempt to build a more nuanced representation of crowding cost by including a discrete step. This primarily addresses the fact that the previous functions do not account for the subjective difference between sitting and standing. The stepped models assume that sitting is preferable to standing and that people automatically assign a higher cost to standing. Both models also assume that when there are seats available, the crowding cost (or perception of crowding) remains the same. 
+
+\smallskip
+\noindent{\textbf{One-step}}
+
+
+The one-step model is given as
 \begin{equation}
-    \label{eqn:stepped}
-    y=\alpha_0+\frac{\alpha_1-\alpha_0}{1-e^{a(x-S)}}+be^{c(x-(S+C))}
+\label{eqn:onestep}
+    y=\alpha_0\frac{S}{x}+\left(1-\frac{S}{x}\right)\alpha_0\left(1+be^{a\left(\sfrac{x}{S}-1\right)}\right)
 \end{equation}
+where $y$ is the crowding cost, $x$ is the number of passengers, $S$ is the seating capacity, $\alpha_0$ is the cost of sitting. $a$ and $b$ are free parameters which can be modified to adjust the shape of the function \cite{qinInvestigatingInVehicleCrowding2014}. This equation requires that $a>5$ for the correct shape. The one-step model assumes there is a constant cost until all seats are filled, whereafter the crowding cost increases exponentially with the number of passengers. The exponential increase in crowding cost as the number of passengers approaches total capacity performs a similar purpose to the quadratic growth of the previous function. As a train approaches total capacity, it should only be perceived as the superior choice if the alternative service would significantly increase travel time (such as an hour long wait for the next service). 
 
-\section{Extensions}
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                axis lines = left,
+                xlabel = Number of people,
+                xmin=0,
+                ylabel = Crowding cost,
+                ymin=0,
+                legend pos=north west,
+            ]
+        \addplot[smooth,mark=.,purple] table [x=count, y=one_step_cost, col sep=comma] {data/Functions/one_step_model.csv};
+            \addlegendentry{Crowding cost}
+        \addplot[domain=0:2000, samples=2, dashed] coordinates {(432, 0) (432, 1.5)};
+        \addlegendentry{Seating capacity}
+        \addplot[domain=0:2000, samples=2, dotted] coordinates {(1232, 0) (1232, 1.5)};
+        \addlegendentry{Total capacity}
+        \end{axis}
+    \end{tikzpicture}
+    \caption[Graph of one-step crowding cost function]{Graph of the one-step crowding cost function, $y=\alpha_0\frac{S}{x}+\left(1-\frac{S}{x}\right)\alpha_0\left(1+be^{a\left(\sfrac{x}{S}-1\right)}\right)$, where $y$ is the crowding cost, $x$ is the number of passengers, $S$ is the seating capacity, $\alpha_0$ is the cost of sitting, and $a$ and $b$ are free parameters.}
+    \label{fig:Crowding_one_step}
+\end{figure}
+
+\smallskip
+\noindent{\textbf{Two-step}} 
+
+
+The two-step model includes an additional step up in crowding cost when sitting capacity is reached, after which it increases exponentially. This is in contrast to the one-step model which increases exponentially from the sitting cost. Compared to the one-step model, the two-step model has a higher initial cost after seated capacity is reached. This attempts to account for the concept that an additional passenger boarding when there are fewer people standing won't significantly increase the crowding cost. 
+
+The two-step model has the form
+\begin{equation}
+    \label{eqn:twostep}
+    y=\alpha_0+\frac{\alpha_1-\alpha_0}{1-e^{a(x-S)}}+be^{c(x-(S+T))}
+\end{equation}
+with the same coefficients as the one-step model, and the addition of $\alpha_1$ for standing cost, $T$ for standing capacity and $c$ as an additional parameter \cite{depalmaDiscomfortMassTransit2015, celebiMeasuringCrowdingrelatedComfort2020}. This model was applied in Istanbul, and the parameters were calibrated by fitting the equation to stated preference survey data \cite{celebiMeasuringCrowdingrelatedComfort2020}. 
+There, the two-step crowding cost function was fitted to the comfort level of respondents at different levels of crowding, using the least squares method, producing parameter values of $a=1, b=1.973$ and $c=0.0087$. This process allowed the crowding cost function to be calibrated to the context in which the model is applied and more accurately capture how people respond to crowding. 
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                axis lines = left,
+                xlabel = Number of people,
+                xmin=0,
+                ylabel = Crowding cost,
+                ymin=0,
+                legend pos=north west,
+            ]
+        \addplot[smooth,mark=.,purple] table [x=count, y=two_step_cost, col sep=comma] {data/Functions/two_step_model.csv};
+        \addlegendentry{Crowding cost}
+        \addplot[domain=0:2000, samples=2, dashed] coordinates {(432, 0) (432, 1.5)};
+        \addlegendentry{Seating capacity}
+        \addplot[domain=0:2000, samples=2, dotted] coordinates {(1232, 0) (1232, 1.5)};
+        \addlegendentry{Total capacity}
+        \end{axis}
+    \end{tikzpicture}
+    \caption[Graph of two-step crowding cost function]{Graph of the two-step crowding cost function, $y=\alpha_0+\frac{\alpha_1-\alpha_0}{1-e^{a(x-S)}}+be^{c(x-(S+T))}$, where $y$ is the crowding cost, $x$ is the number of passengers, $S$ is the seating capacity, $T$ is standing capacity, $\alpha_0$ is the cost of sitting, $\alpha_1$ is standing cost and $a$, $b$ and $c$ are free parameters.}
+    \label{fig:Crowding_two_step}
+\end{figure}
+
+As discussed in \refandname{chap:ModelConstruction}, the crowding cost functions were implemented as part of a cost utility function which also accounts for travel time (\Cref{eqn:cost_utility}). This encodes the trade off between travel time and crowding cost, simulating decision making to assign passengers to trips. By modelling crowding, WoB accounts for an additional factor that influences travel behaviours, approaching an output which is closer to actual travel patterns. 
+
+%Since the cost utility function includes both crowding cost and travel time, the model can optimise for trips which have the preferred trade off between these two parameters. This enables the model to simulate decision making between a trip with shorter travel time or less crowding. While the model assumes the agents are entirely rational and always make the best choices, humans rarely behave in this way. However, including additional parameters within the model decision making can allow us to get closer to actual behaviour. The cost utility function can be further extended and generalised to include more parameters such as transport fares, station waiting time and number of transfers. In particular, attitudes towards transfers can vary widely depending on personal opinions, cultural and social contexts as well as the station infrastructure which may be more or less conducive to efficiently making transfers. By taking into consideration additional parameters, agents are able to make more informed decisions, and the impact of network or timetable changes can be assessed in the context of a broader range of outcomes. While this can be useful in some contexts, more parameters also introduces more complexity which can obfuscate meaningful results, particularly when there is a lack of good quality data on the additional parameters. 
+
+%\subsection{Further Functions}
+%\label{subsec:crowding_further}
+%There are numerous other crowding cost functions that have been developed and reviewed in the literature but not presented here. As this project is developed in the context of the Melbourne transport network, the focus has been on the key functions which are most relevant and useful. There are various reasons why a function may not be suitable to be implemented for the purposes of this project, including lack of relevant data or introducing unnecessary complexity for diminishing returns. 
+
+
+%For example, another common crowding cost function is the multi-step function, which is an extension to the one- and two-step models but omits the exponential growth of the cost. Instead, multiple levels of crowding are defined with a fixed cost associated with each level. 
+
+% Include function form
+
+%However, this requires definitions of different levels of crowding and the cost associated with these levels. In some countries such as Japan and Germany, these standards are available, however, this is not publicly accessible data in Melbourne. Additionally, different countries and cultures have different levels of satisfactory crowdedness and tolerance to crowding so it is difficult to apply standards from other context as well. Therefore, manually estimating multiple crowding levels and determining the costs associated just to implement this as an additional function was considered unnecessary. 
+%In addition, at each of the crowding levels, the crowding cost needs to be set, which is an additional parameter that needs to be calibrated. Since calculating these parameters from empirical data is outside the scope of the project, these would need to be manually filled in which would likely reduce the accuracy of the results. Therefore, for this project, despite the potential benefits of the multi-step model, it was not implemented into the model functionality due to the limited value it could provide. 
+
+%\subsection{Limitations}
+%\label{subsec:crowding_lim}
+%One of the key limitations of the implementation of crowding cost functions is that the seating and standing capacities are given for the full 6-car trains. Therefore, the underlying assumption is that people spread evenly over the whole train as there is a single crowding cost assign to the entire train. Realistically, there is likely to be varying crowding costs in different carriages as there will be a different number of people in each. However, modelling individual carriage crowding would require the ability to model the station and platform as this influences where on the train people board and move towards different carriages. This more significantly impacts the stepped models since they assume a constant crowding cost until seat capacity is reached, which assumes that people will search the train for all available seats since they all incur the same seated cost until all the seats are full. In practice, there are many people who don't mind standing and won't search for a seat, or who would rather stand than sit next to someone else. However, understanding these nuances is beyond the scope of this project as the aim is understand services utilisation, and these considerations begin moving towards choice modelling. 
+
+%Another limitation is the lack of information about which train models are used for each service. In Melbourne, the types of trains that can run on each line are specified but the specific models used can vary between services on the line and there is no information about the proportion of services run on each kind of train. Each train model has its own capacity and configuration which impact crowding perception and discomfort which ideally should be accounted for in the crowding cost. 
+
+%\section{Extensions to General Cost Utility}
+\label{sec:crowding_extensions}
+% This section probably begins moving into cost utility stuff which idk is relevant here. Kind of is a future work section tho? Maybe?

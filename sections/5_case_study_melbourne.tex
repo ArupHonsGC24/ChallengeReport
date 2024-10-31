@@ -1,13 +1,310 @@
-\chapter{Case Study: Crowding on Melbourne Metro Trains}
+\chapter{An Analysis of Melbourne's Rail Network}
 \label{chap:CaseStudy}
 
 \section{Introduction}
+The Melbourne metropolitan train system was chosen to illustrate the potential applications of the Who's on Board (WoB) model. Melbourne faces similar transport challenges to many other cities across the world, including population growth, car-dependency and increasing demand for services and infrastructure. Like many modern public transport systems, Melbourne uses a smart-card fare collection system which provides detailed patronage information. Additionally, the research team was granted access to origin-destination patronage demand data by the DTP, enabling this research to be undertaken. As Melbourne is well placed to demonstrate the utility of the Who's on Board model, this case study provides a showcase of the model's potential for novel data visualisations and insights.
+
+The city of Melbourne is the second most populous city in Australia, with the Greater Melbourne region spanning 9,992 km² and being home to almost 5 million people \cite{australianbureauofstatisticsGreaterMelbourne2021}. Greater Melbourne encompasses a sprawling urban and suburban region, with the highest population density located in the central business district (CBD) \cite{australianbureauofstatisticsRegionalPopulation2022}. Melbourne's growth is accompanied by increasing car dependency which, exacerbated by low density urban sprawl with limited public transport facilities, undermines efforts to achieve climate change mitigation goals \cite{rahnamaSpatialtemporalAnalysisUrban2020}. Supporting public transport (PT) projects informed by an understanding of demand patterns and crowding can enable more effective projects to be funded, contributing to achieving transport sustainability goals.
+
+\subsubsection{Public Transport}
+Public transport in Melbourne includes trains, trams, and buses, and served over 157 million passengers in the 2022-23 financial year, with an estimated running cost of \$1.4 billion over this period \cite[p.~47]{victoriandepartmentoftransportandplanningDepartmentTransportPlanning2023}. The metropolitan rail system consists of 16 radial train lines, a network diagram of which can be found in the Appendix III, along with rollingstock details.
+
+\subsubsection{Fare Collection as a Data Source}
+The primary source of rail usage data in Melbourne comes from the Myki smart-card system, designed to collect a variable fare based on the journey taken. Myki gathers data for when and where people enter ("touch on") and exit ("touch off") the network but does not capture the exact services taken or how many transfers were made (if any). The data collected from Myki can be incomplete, often missing exit events due to the fare policy which does not always penalise exits without touching off (which leads to many trips with only origin information) or due to fare non-interaction \cite{yinInvestigationPublicTransport2022}. While different cities have different fare policies and rates of fare evasion, determining specific service use and transfers remains a challenge for any city. 
+
+\subsubsection{Crowding on Melbourne Transport}
+Crowding on rail services in Melbourne is measured using rolling hour average loads, with an overcrowded line defined as when the average number of passengers per train is above 900 \cite{liCrowdingPublicTransport2013}
+
+The Melbourne Metropolitan Train Load Standard Surveys occur yearly using this overcrowding benchmark to determine when and where services may be overcrowded. This is used by government agencies to determine whether additional services are needed to meet demand. In the last survey (May 2019), 7.2\% of AM peak services and 6.3\% of PM services were above this benchmark, impacting 10.2\% and 9.6\% of AM and PM peak passengers respectively. However, analysis in 2013 comparing these benchmarks to external surveys of perception of crowding conducted by third parties found that passengers' perceptions of crowding were far worse than what was measured using these benchmarks \cite{liCrowdingPublicTransport2013}. 
+
+Therefore, the reported benchmarks in the Metropolitan Train Load Standard Surveys may be inadequate to measure crowding. Travel decisions are influenced more significantly by the perception of crowding than the numerical benchmarks. Therefore, using crowding cost modelling calibrated by perception of crowding may contribute to a clearer picture of transport modelling. 
+
+\subsubsection{Transport Modelling in Melbourne}
+
+Transport modelling plays a role in key transport project decision making processes, such as in business cases and scenario testing. Recent and ongoing projects in Melbourne make significant use of modelling, such as the Suburban Rail Loop and the Melbourne Metro Tunnel \cite{victorianparliamentarybudgetofficeSuburbanRailLoop2024, victoriandepartmentofeconomicdevelopmentjobstransportandresourcesMelbourneMetroBusiness2016}. Given the role modelling plays in decision making, it is vital that these models are of sufficient quality to ensure the conclusions drawn from them are as accurate as possible. 
+
+The data for this case study is composed of two distinct types derived from Myki data that each encode different information about the same system. While they can be reconciled to give a more comprehensive picture than either alone, it is not a straight-forward process. The O-D data provides the level of demand between places but is not service specific and lacks exactly how each journey is made. Service-level boardings data includes the occupancy information and describes boardings, alightings and loading on services, but lacks insight into where people are going, or if and how they made transfers to get there. Using WoB to unify these two types of data to produce a cohesive and meaningful output allows a more holistic view of rail transport. 
+
+WoB can search a network to find journey itineraries which align with the start and end points specified by the origin-destination data. The result provides service level granularity on which services are being used, which transfers are being made, and which travel corridors are popular. By bridging this data gap, WoB provides more detailed and nuanced data which can help with planning decisions, such as station re-configurations and timetable changes, to ultimately ensure passengers are able to get to where they need to go. 
+
+The WoB model was created with the context of Melbourne in mind, with it's expanding outer suburbs and need for improved transit to meet climate goals. In order to accurately model and build the projects required in the future, we need an improved understanding of how our existing system is being used. 
+
+\subsection{Approach}
+The aim of this case study is to demonstrate the potential of the WoB model for determining novel rail use insights through modelling the Melbourne metropolitan rail system.
+
+\Cref{sec:data} details the pre-processing performed on the data prior to use of the model. \Cref{sec:validation} outlines the process undertaken to ensure the model produced legitimate results. \Cref{sec:methodology} describes the how the analysis metrics were calculated. Finally,  \Cref{sec:resultsanddiscussion} presents novel insights into network utilisation, crowding, the impacts of timetable changes and transfer behaviour. 
 
 \section{Data}
-\subsection{Sample subsection 1}
+\label{sec:data}
+\subsection{Input Data}
+The WoB model requires Origin-Destination (O-D) data as an input to know when and where people are starting and ending their trips. The "Annual Metropolitan and Regional Train Origin-Destination Counts" for the financial years from 2018-2019 to 2023-2024 was provided by the DTP. This data is referred to as the "original" or "unprocessed" O-D data. Since WoB runs on the current timetable GTFS and only models the metropolitan rail network, the data was filtered for metro trips in the 2023-2024 financial year on normal Mondays (not school holidays or public holidays), which included 497,471 passengers and 234,678 unique journeys. There are currently 222 metropolitan train stations. Flemington Racecourse, Showgrounds and East Pakenham were excluded, as the former two are only occasionally open for events, while East Pakenham only opened midway through 2024. A total of 219 stations were used for this analysis. Inconsistencies between the GTFS stop names and the O-D data station names were found, so all stations were renamed to follow GTFS naming conventions to ensure they were included in lookups. 
+
+An example of the relevant columns of data is shown in \refandname{tab:SimInput} (\Cref{chap:ModelConstruction}). The O-D dataset aggregates the number of people who take a trip from an origin station to a destination station into the departure and arrival hours. The total number of people making a specific trip is summed for each financial year, day of the week and day type (normal weekday, school holiday, public holiday) and presented as the total patronage. The average daily patronage is also included, calculated by dividing the total yearly patronage by the number of days in that category (e.g. a normal non-holiday Monday occurs 39 times in the 2023-2024 financial year).
+
+The O-D data is collected from Myki interactions, Myki barrier data and conductor survey counts, and run through the Train Service Usage Model (TrainSUM). % Cite metadata
+The TrainSUM model is developed by the DTP and used to estimate of historical train boardings, alightings, transfers and service loads from Myki card data \cite{rossmannRidespacePredictingShortterm2022}. TrainSUM takes network entries and exits and uses the timetabled services to assign passengers to the services. This assignment is used to calculate the boardings, alightings and loading for each train service. While it also attempts to include where transfers occurred, it models at most one transfer per trip \cite{victoriandepartmentoftransportandplanningTrainServicePassenger2024}.
+
+TrainSUM also accounts for the touch on rate based on the Touch On Rate Survey and uses a boost factor to account for ghost trips where passengers may not have touched on or off. However, this process is based on the assumption that ghost trips do not occur at gated stations, which is not entirely accurate \cite{rossmannRidespacePredictingShortterm2022}. TrainSUM also imputes missing data for an unknown number of unpaired trips which are missing system entry or exit information. 
+
+Additionally, the TrainSUM model does not take into account maximum vehicle capacities and therefore cannot directly model train crowding \cite{victoriandepartmentoftransportandplanningTrainServicePassenger2024}. Crowding causes shifts in service demand which can increase demand in later services. 
+
+TrainSUM is not available outside the DTP, but all datasets released by the DTP have been processed using it and the ramifications of its specific algorithms for our results are unclear. 
+
+\subsection{Reconstruction of O-D }
+\label{subsec:data_recon}
+The O-D data provided was only available for hourly periods, which does not provide sufficient detail for our model to accurately assign passengers to specific services. Therefore, the hourly O-D data was distributed into 15 minute periods using the "Train Service Passenger Counts" dataset which includes historical data on boardings, alightings and arrival and departure loads at the service level \cite{victoriandepartmentoftransportandplanningTrainServicePassenger2024}. The proportion of total boardings at a station within an hour that occur within each 15 minute period was calculated. The number of patrons in the O-D data for each hour were then distributed according to the proportion of boardings which usually occur in each 15 minute period. 
+
+The distribution process from the hourly O-D count to 15 minute periods is not entirely straightforward due to the random nature of how the number of people taking a given trip may manifest on different days. The O-D data is aggregated to yearly totals of the patronage on each O-D pair for a given hour for a specific combination of day type and day of the week (such as normal weekday and Monday or school holiday and Wednesday). There is an enormous number of ways this total patronage could occur over the year. For example, a total patronage of 40 people on a normal Monday could be made up of 1 person on 40 different normal Mondays, 40 people on a single normal Monday, or any other combination that adds up to 40 people travelling in total on those days over the year. 
+
+To account for the statistical variation in how people may have actually travelled to form the total patronage values, a binomial distribution was used to calculate a discrete number of boardings. 
+
+The discrete random variable $X$ was defined as 
+\begin{equation}
+    X \sim B(T, \frac{1}{d})
+    \label{eqn:binomial_def}
+\end{equation}
+where $T$ is the total patronage for a O-D trip for a given combination of day type and day of the week and $d$ is the number of days in that combination of day type and day of the week. $X$ was defined and sampled for each hourly O-D pair, which allowed a discrete number of people to be sampled from a non-integer average patronage value. 
+
+The following algebraic expression determines the shape of the binomial distribution,
+
+\begin{equation}
+    P(x) =  \binom{T}{x} \left( \frac{1}{d} \right)^x  \left( 1-\frac{1}{d} \right)^{\left( {T-x} \right)}.
+    \label{eqn:binomial_eqn}
+\end{equation}
+
+Using this distribution, the NumPy binomial function chooses a value of $x$, the number of people for that hourly O-D pair on the day that we are modelling \cite{harrisArrayProgrammingNumPy2020}. Since this is determined probabilistically, this varies when the initial seed value is changed. However, by defining the number of trials and probability of success as in equation \ref{eqn:binomial_def}, the expected value can be calculated as,
+
+\begin{equation}
+    E(X) = T \frac{1}{d}
+    \label{eqn:binomial_expectedvalue}
+\end{equation}
+which is also equal to the average daily patronage as provided in the original O-D data set, calculated as, 
+
+\begin{equation}
+    \text{Average Daily Patronage} = \frac{T}{d}.
+    \label{eqn:averagedailypatronage}
+\end{equation}
+
+This process produces an integer number of patrons for each O-D pair for combinations of day type and day of the week for each hour. 
+
+At this point, the O-D data is still aggregated hourly, but an integer average daily patronage has been calculated from the non-integer yearly total patronage. The proportion of hourly boardings which occurred within each 15 minute period was calculated by dividing the number of boardings in the 15 minutes by the total hourly boardings. This creates a discrete distribution of the hourly boardings. The NumPy choice function was then used to produce distribute the hourly O-D trips into 15 minute periods based on the proportions calculated from the boardings data. 
+
+By using this binomial distribution, the O-D data intervals were increased from hourly to 15 minute, providing a more detailed input for the WoB model. This 15 minute O-D data is referred to as the "input" O-D data. 
+
+\subsection{Trip Capacities}
+As the Melbourne metropolitan train network runs four different train types: Comeng, Siemens Nexus, X'Trapolis 100 and High Capacity Metro Trains (HCMT) \cite{VICSIGRollingstock}. The different capacities for each need to be accounted for. The first three have very similar capacities, within 10-20 people of each other, and are run widely across the network. For simplicity, the X'Trapolis capacity was assumed for all three models: a seated capacity of 432 people and a standing capacity of an additional 800 people, totalling a standard capacity of 1,232 people. However, HCMTs are only run on the Cranbourne and Pakenham lines and have a much higher total capacity of 502 seats and an additional 1000 people standing. 
+
+The optional WoB trip capacity specification function was used to account for variations in train capacities. Trip capacities were defined by matching the train lines for each service to the train lines on which the previously specified train types run. 
+% Cite metro config rollingstock doc 
+
+\section{Validation}
+\label{sec:validation}
+Following model construction, validation was undertaken to ensure that the model outputs were both consistent with the input data and with historical boardings and alightings data. This ensures the model is functioning as expected. Inconsistencies between the input data and model output would indicate errors in the model construction that impact modelling accuracy. The number of trips that start and end at each station should be identical for the input O-D data and the model output (excluding transfers which are not included in the input O-D data). Validating the model output's consistency with real world observations of travel patterns is significantly more complicated as they are not expected to be match exactly, but they should still be broadly similar. 
+
+\subsection{Model Validation}
+\label{subsec:validation_model}
+The most efficient way to check that the model is operating as expected was to analyse the model inputs and outputs. Since the input O-D data dictates the origin and destination stations of each agent's overall trip, the journey output from the model should be identical. The difference in boardings and number of trips starting at each station in each hour was calculated to isolate the discrepancies between the two datasets. There were two key issues with the distribution of the hourly O-D data into 15 minute periods that caused discrepancies between the model input and output. 
+
+The first issue resulted from the case where there were no boardings at a station in a given hour, but trips are still recorded there in the O-D data. Initially, if there were no hourly boardings, the proportion for all four 15 minute periods would be set to zero. All of the trips in the O-D data in that hour would then be removed from the result since they would be multiplied by zero. This was rectified by distributing the O-D trips evenly across periods that contained no boardings with which to calculate a proportion. In this case, the proportion would be given as 1 divided by the number of quarter hours for which there are no boardings. 
+
+After fixing the zero proportion issue, there remained a 67 person discrepancy in the average daily patronage between the original O-D and the processed O-D data. This was found to be due to trips existing in the original O-D data but with no corresponding service departing from the trip origin station during the trip departure hour recorded in the boardings data. When joining the original O-D data to the boardings data, this discrepancy produces null values, resulting in some missing O-D trips following processing. The predominant cause was trips before 5am, as these appeared in the original O-D but there was no corresponding boardings data (66.2 average daily patronage). The Stony Point line was also anomalous, with trips after 5am appearing as null, although this only contributed 0.8 of the average daily patronage difference. The reason for the discrepancies between the boardings data and the original O-D data is unclear. However, we are able to account for all the differences between the original O-D and processed O-D data, therefore validating the O-D processing method and model functionality.
+
+\subsection{Crowding Cost Validation}
+\label{subsec:validation_crowding}
+Of the four crowding cost functions outlined in \refandname{subsec:crowding_functions}, one had to be chosen to be used for the case study. While WoB is not intended to exactly replicate past demand as it occurred, comparing it to historical passenger counts serves as a basis for verifying the model functionality. The impact of the crowding cost functions can also be observed to inform the selection of which function best reflects perception of crowding in Melbourne to more accurately assign passengers to services. The difference between datasets can be compared by finding the absolute difference in the number of boardings or trips beginning at each station in each hour for each dataset. The sum of the absolute difference indicates the magnitude of the difference between the datasets. The two datasets can also be compared by plotting the number of boardings or trips for each station in each hour, on the x- and y-axes, and the line $y=x$ is where they are identical. The closer the fit of the two datasets to this line, the more similar the two datasets are. 
+
+\subsubsection{Comparing to input O-D data to Melbourne Passenger Counts Data}
+The origin and destinations of trips are set according to the input O-D data so the similarity of the model output to the Melbourne Passenger Counts data is limited by how similar the input O-D is to the passenger counts. Comparing the input O-D and the passenger counts data establishes the expectation for how similar the model output can be expected to be to the passenger counts. 
+
+\Cref{fig:inputvsdatavic} shows the sum of boardings or trips starting at each non-transfer station in each hour for the passenger counts on the y-axis and the input O-D on the x-axis. The input O-D data does not account for transfers as it only includes the origins and destinations of trips, whereas the service-level passenger counts attempts to impute where transfers occur. This caused significant differences between the two datasets at stations with line transfer opportunities so only non-transfer stations were included to observe the similarity of the datasets without then being skewed due to differences in transfer behaviour. The data shows an overall relatively good fit to the line $y=x$, indicating the datasets included fairly similar travel patterns. However, there is variation around the line, with an absolute difference of around 40,000 when aggregated hourly at station. This suggests the model output should match the overall shape of the passenger counts data but will not be identical.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/Validation/inputvsdatavic.png}
+    \caption[Comparison between input O-D and passenger counts data at non-transfer stations]{Comparison between input O-D and passenger counts data at non-transfer stations with a linear line of best fit.}
+    \label{fig:inputvsdatavic}
+\end{figure}
+\subsubsection{Comparing functions and coefficients }
+Using the four different crowding cost functions built into WoB, the model outputs could then be compared to identify the impact of these crowding cost functions. Since each function represents a different relationship between the number of passengers and crowding cost, there should be an observable difference in the trip choices made by the simulation agents. The same process was undertaken as for comparing the input O-D to the passenger counts data, wherein the model output was plotted on the x-axis and the passenger counts data on the y-axis, for each hour at each non-transfer station. The closeness of the linear fit to the line $y=x$ and the absolute difference between the datasets was used to assess the best crowding cost function for the case study. 
+
+To ensure consistency between the functions, the same parameters and capacity values were used ($\alpha_0=0.25, \alpha_1=0.5, a=5, b=1, c=0.01$). The linear crowding cost function output had the best fit, producing a slope of $0.95$ with an absolute difference of $41,211.51$, the quadratic function had a slope of $0.94$, while both the one- and two-step models produced a slope of $0.93$. The full plots for all four functions can be viewed in Appendix II. However, to determine whether varying the parameters for the one- and two-step would improve how well the model output fits to the passenger counts data, a combination of different parameter values were also tested. 
+
+The full table of parameters tested and the fit results (including the slope and standard deviation) is available in Appendix II. Out of the combinations tested, the two-step model performed the best with a slope of $0.96$ and an absolute difference of $37,341.33$ with the parameters $\alpha_0=0.25, \alpha_1=0.5, a=5, b=0.5, c=0.02$ (\Cref{fig:two_step_final}). This difference between the model output with the two-step crowding cost function and the passenger counts is within the margin of error due to the difference between the input O-D data and the passenger counts. Therefore, the two-step crowding cost function with the aforementioned parameters was used for the case study data analysis. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/Validation/two_step_final.png}
+    \caption[Comparison between WoB journey output and passenger counts data at non-transfer stations]{Comparison between WoB journey output and passenger counts data at non-transfer stations with a linear line of best fit.}
+    \label{fig:two_step_final}
+\end{figure}
 
 \section{Methodology}
-\subsection{Sample subsection 2}
+\label{sec:methodology}
+The network was generated using a GTFS file spanning from September 6th to December 8th. The modelled date was set to September 9th, 2024, a normal Monday. There were no major planned disruptions due to the ongoing Victorian Big Build works, but there were some overnight closures. %( CITE https://mobilitydatabase.org/feeds/mdb-657 and https://bigbuild.vic.gov.au/disruptions/calendar) 
+The processed O-D was used as input patronage information, and trip capacities were supplied to specify the varied train capacities for each train line, as described in \refandname{sec:data}. The two-step crowding cost function was used, as justified in \refandname{subsec:validation_crowding}. Three rounds were modelled as the model converges on a stable solution at this point (\Cref{subsec:convergence}). 
+
+\subsection{Network Utilisation}
+% Max count map
+In order to visualise spatial peak rail network utilisation, the maximum counts for each pair of adjacent stations (connections) was found for the morning peak period (7am-10am) using the WoB agent counts output. Adjacency was defined by trips, not by spatial proximity, so express service connections bypass some stations. The connections were colour coded according to the value of the maximum passenger count and plotted on a map. 
+
+% Network utilisation graph
+To visualise temporal network utilisation, the agent count data needed to be re-indexed on a per-minute basis, rather than as a list of variable periods of time. To this end, an array indexed by each minute of the day was initialised to zero, and for each connection record in the agent count output the departure and arrival time of each connection was added to the relevant segment of the indexed array. This array then encoded the total network utilisation during each minute of the day.
+
+\subsection{Sustained Crowding}
+% Number of services w/ sustained crowding (text/ wordy stuff)
+Sustained crowding was investigated by analysing the number of connections per trip, that exceeded the seated capacity. Using the WoB agent counts output, these connections were summed and divided by the total number of connections in that trip to determine the proportion of total trips which were above seated capacity. 
+
+% Standing Hours
+To calculate the number of hours spent standing on trains throughout the day, the duration of each connection in minutes was multiplied by the number of standing agents (the total agent count minus the seating capacity, with a minimum value of zero) to determine the per-connection standing minutes. Then, connections were grouped by train line and the standing minutes summed together, after which the standing minutes were converted to hours.
+
+\subsection{Timetable Modification}
+% Timetable editing and loading
+To demonstrate WoB's ability to assess the impact of timetable changes, a modified GTFS file was used to produce a comparison of passenger loads when a service was added. The service with the highest passenger count was chosen, as it was expected that an additional service would help alleviate crowding and produce a change in passenger loads. This was found to be the 7:23am in-bound Cranbourne service. This trip was duplicated and given a new trip ID in the GTFS file and the stop times were delayed by 2 minutes, producing a new 7:25am in-bound Cranbourne service. The trip capacities file was also updated with the new trip ID and the same train capacity as the original 7:23am service. Two plots of passenger loads across the stations were produced, one without the additional service and one with it, to observe the impact of the new service. The services immediately before and after the 7:23am service (at 7:11am and 7:38am) were also included to observe any shifts in passenger loads. 
+
+\subsection{Transfers}
+Transfers were defined by journeys that involved boarding more than one service. The number of transfers taken per station was quantified by summing the number of agents per station from the transfers output from WoB. The stations were then colour coded according to the number of transferring passengers and plotted on a map. 
+
+\subsubsection{Journey Types}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/Case_Study/diagram_assigning_groups_transfers.PNG}
+    \caption{Example journeys that demonstrate orbital, cross-city or city characteristics. }
+    \label{fig:transfer-diagram}
+\end{figure}
+Using the WoB journeys and legs output, trips with at least one transfer were assigned into three main categories: city, cross-city or orbital. \Cref{fig:transfer-diagram} illustrates example journeys for each of these categories. City trips were defined as trips starting or ending in the CBD (City Loop stations), or nearby major stations such as Richmond, Jolimont, South Yarra and North Melbourne, as demonstrated by the purple line. Orbital trips are trips where the origin-destination points are orbital, but due to the radial network layout involve extra travel to transfer at a common junction station. An example of this is shown in red in \Cref{fig:transfer-diagram}, where travel between Caulfield and Camberwell involves extra travel into Richmond Station to interchange. Cross-city trips occur when the journey involves crossing through the city, as demonstrated by the yellow trip connecting Elsternwick and Footscray. To differentiate between orbital transfers and cross-city transfers, the lines were grouped and rules were assigned to determine cross-city or orbital relationship. The precise assignment process is outlined in Appendix III.
+
+To investigate where the travellers making transfers were coming from and heading to, stations in the network were classified as being "inner" or "outer", based on whether they were reachable within 20 minutes from Flinders Street Station. Journeys beginning and ending in different zones were assigned as "inner and outer". Of the journey types (orbital, city, cross-city), the number of agent taking journeys across the different zones was summed. 
+
+\subsubsection{Platform Transfers}
+Platform transfers at Flagstaff, Melbourne Central and Parliament were visualised by filtering the agent transfers WoB output for transfers occurring at these stations. These three stations have fixed platforms for each train group, which are the same for all three stations and are specified in Appendix III. The volume of agents making transfers between each of the four platforms was plotted on a matrix. 
 
 \section{Results and Discussion}
-\subsection{Sample subsection 3}
+\label{sec:resultsanddiscussion}
+\subsection{Network Utilisation}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{images/Case_Study/max_count_map_labelled.png}
+    \caption[Maximum connection passenger count]{Maximum passenger count between each pair of subsequent stations during the morning peak period (7am-10am). The Werribee express service has been magnified.}
+    \label{fig:max_connection_map}
+\end{figure}
+\Cref{fig:max_connection_map} shows the maximum passenger count between each pair of subsequent stations (connections) in the morning peak period (7am-10am). This includes express services overlaid as these often have high patronage during peak times. The Werribee express has been magnified on the map, showing the higher maximum passenger count, compared to the stopping all stations via Altona service. A network schematic map is available in Appendix III. The corridor between the CBD and Dandenong, Craigieburn, Box Hill and Footscray all have high maximum counts. The patronage towards the ends of lines tend to be lower than the middle to inner regions of the lines. 
+
+Due to the radial nature of the metropolitan rail network and the high density of workplaces in the CBD, majority of train use during the morning peak is into the CBD. \Cref{fig:max_connection_map} shows the expected trends with the maximum number of passengers through connections increasing towards the inner city. While station pairs around the City Loop have the highest sum of passengers travelling through them, the high frequency of services means that the maximum count on a single service is lower than some of the other inner city connections such as from Richmond to Parliament. WoB's agent count output enables the quantification of these patterns, to understand which connections are highly utilised at different times. \Cref{fig:max_connection_map} also shows express connections such as the Werribee line express via the bypass, which has a higher maximum patronage than the individual connections through the stopping all stations Altona loop section. Understanding how these express services are utilised differently enables more nuanced provisioning of these services. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{images/Case_Study/network_util.png}
+    \caption[Network-wide utilisation]{Minute-by-minute network-wide utilisation. }
+    \label{fig:network_utilisation}
+\end{figure}
+
+% RESULTS
+Figure \ref{fig:network_utilisation} shows the agent count per minute across the entire network. This provides insight into the number of people aboard trains at any given time, allowing the busiest windows to be observed. A high morning peak is observed between 7am-9am, and a lower yet longer afternoon peak occurs between 3pm-6pm. 
+
+The two peaks in network utilisation occur during the expected peak period ranges. The AM peak period sees a higher volume of people over a shorter time window than the PM peak period, which tends to be elongated on weekdays due to the staggered finishing times of school and work. This was observed in semester one work on peak periods for train usage \cite{tranChangesPeakPeriods2024}.
+
+While \Cref{fig:network_utilisation} provides a snapshot of the number of people on services at a network-wide level, it can also be specified to a particular train station or region, demonstrating the granularity possible when using WoB. There are a range of applications in which this can be utilised, including understanding the time between each of the peaks and the length of the peaks. This can provide useful context when making decisions on station dwell times and transfer timings in timetable evaluation. 
+
+The periodic spikes observed in \Cref{fig:network_utilisation} is due to the binning of the input data by 15 minute intervals, as described in \refandname{sec:data}. As agents start their journey at the beginning of a 15 minute block, they begin boarding trips immediately, leading to a spike in the number of agents in the network. However, no new agents enter the system for the remainder of that 15 minute block, so the only effect on the system is agents arriving at their destination and being removed from the network, leading to an overall drop in utilisation. More detailed O-D data would allow agents to be generated more naturally to prevent this type of artefact. 
+
+\subsection{Sustained Crowding}
+In order to gain a more comprehensive understanding of crowding, the levels of sustained crowding on train services was measured as the proportion of stops for which a service was above seated capacity. 93\% of services were found to be above seated capacity for less than 10\% of the total stops on a given trip.
+
+Only 36 out of 2,592 services exceeded seated capacity for over half of the stops in the total trip. The Alamein, Frankston, Upfield, Williamstown and Belgrave lines did not have any trips with crowding above seated level for half of the trip. The Werribee and Hurstbridge lines had the greatest number of trips which were occupied to this extent, with 8 and 6 respectively, all of which occurred within the AM (7am-10am) and PM (3pm-6pm) peak periods. 
+
+% describe results for passenger hours
+Crowding can also be quantified by measuring the total number of hours for which passengers on each line are required to stand (\Cref{fig:standing-minutes}). The Belgrave, Craigieburn, Sunbury and Werribee lines all had high numbers of passenger hours spent standing. The Alamein, Frankston, Upfield, Sandringham and Williamstown lines were comparatively very low. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\linewidth]{images/Case_Study/standing_hours.png}
+    \caption[Hours passengers spent standing over a single day]{The total amount of time passengers spent standing over a single day for each train line of the network. The colours are defined by the GTFS route colour, which matches their colour on passenger-facing information displays.}
+    \label{fig:standing-minutes}
+\end{figure}
+
+Given the highly radial train system serves some regions with relatively small population catchments (e.g. Hurstbridge and Tecoma), it was expected that many services would experience crowding in the inner city regions. Longer train lines such as Belgrave and Frankston did not have any trips above seated capacity for more than half of the journey length, which is consistent with the lower agent counts in the outer connections observed in \Cref{fig:max_connection_map}. Craigieburn was found to have consistently high passenger hours standing and maximum agent counts for majority of the trip connections during the AM peak period. 
+
+Quantifying passenger time spent standing provides a passenger-focused method for evaluating public transport service changes. This metric can provide greater insights for how service changes impact passenger comfort. The Belgrave line has a relatively high amount of standing time, given there were no services with crowding above seated capacity for over half the stops. Combining these two crowding metrics suggests that the Belgrave line is more likely to experience shorter periods of intense crowding which contributes to the large quantity of passenger standing time. Conversely, Craigieburn has a high amount of standing time but also has four services above seated capacity and high maximum connection counts. This suggests that Craigieburn experiences sustained crowding across the line. These examples highlight the ability of WoB to produce novel outputs that can be combined to illustrate a nuanced picture of the transport network. 
+
+The standing time calculation assumes that people only stand once all seats have been filled. While this is possible on the HCMT trains with open corridor connections, all other train models would require a passenger to change carriage at a station to access seats on other carriages. 
+
+\subsection{Timetable Modification}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\linewidth]{images/Case_Study/gtfs_edit.png}
+    \caption[Passenger counts between connections aboard in-bound AM peak Cranbourne services, with the addition of a new service]{Passenger counts aboard in-bound AM peak Cranbourne services, with the addition of a new service. (Left) Services in the original timetable. (Right) Services with a 7:25am service added. As passenger counts are measured between station connection pairs, the stations listed on axis are the departure stations.}
+    \label{fig:CBE_add_service}
+\end{figure}
+
+Figure \ref{fig:CBE_add_service} shows the results of an altered timetable, where an additional in-bound Cranbourne service was added at 7:25am, 2 minutes after the existing 7:23am service. This demonstrates how WoB redistributes passengers when the timetable is changed. All three of the existing services show similar shapes of patronage across the stops before and after addition of the new service. The redistribution of demand to the new service is apparent in the reduction in patronage on the 7:38am service. 
+
+The drop in patronage on the 7:38am service as a result of the additional 7:25am service in \Cref{fig:CBE_add_service} shows agents have decided to take the earlier and less crowded 7:25am service. The changes observed across these figures highlights agent journey replanning by WoB, and demonstrates how network utilisation changes in response to service changes. 
+
+In the scenario with the additional service, there are 4,773 people on board the new 7:25am service while the 7:38am services has 1,180 fewer passengers. Both the 7:11am and the 7:23am show no changes in patronage as a result of the new service. The fact that the total patronage in the new service scenario is greater than that of the original timetable indicates that passengers previously taking services on other lines have made transfers to the Cranbourne line to avoid crowding. Prior to Dandenong, which is the first station with transfer opportunities, the total patronage on the four services in the new service scenario is the same as the original three services. This shows that when transfers are not possible, the change in patronage is entirely due to people choosing the new 7:25am service over the 7:38am service. 
+
+This example shows how WoB can be used to evaluate timetable changes by quantifying their impact. Although quantifying the effect of timetable changes by hand is challenging due to the multitude of factors influencing decision-making, WoB's simulation provides a foundation for modelling this decision making.
+
+The current version of WoB does not feature built-in GTFS modification tools, requiring the GTFS files to be manually edited to include the additional service. Whilst WoB can handle evaluating more widespread timetable changes, the workflow to achieve this is currently limited by laborious manual GTFS manipulation. A key feature to increase the speed of timetable evaluation workflows in WoB would be an inbuilt interface for GTFS modification. This would support faster iteration of different timetable scenarios for applications such as transport planning and consultation. 
+
+\subsection{Transfers}
+WoB's ability to match origin-destination station pairs to network-based journey itineraries provides greater detail into how users make transfers. This enables deeper exploration of demand at and within stations by revealing where transfers are made, as opposed to just the station entry and exit volumes. As 43.4\% of all journeys involve making a transfer and current data does not adequately capture the details of this behaviour, WoB was used to further investigate transfer patterns. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\linewidth]{images/Case_Study/transfer_map_labelled.png}
+    \caption{Number of agents making transfers at stations, colour coded by volume of agents.}
+    \label{fig:transfer-map}
+\end{figure}
+
+\Cref{fig:transfer-map} visualises the number of transfers made by agents at stations over a normal Monday. Flinders Street and Richmond Station exhibited the highest number of transfers, followed by North Melbourne, Southern Cross, Parliament, Flagstaff and South Yarra Station. Further from the CBD, a moderate number of transfers are also made at Footscray, Caulfield, Burnley and Clifton Hill. Of journeys made which included a transfer, 69\% of these started or ended at CBD stations. 13\% were cross-city and 18\% were orbital. 
+
+
+% tie the map into the following statistics - at those transfer stations, the purpose of people's transfers were investigated. 64.2\% of agents made trips which started or ended at the CBD stations. Of the remaining agents, 23,587 made cross-city trips, and 33,402 took journeys that we classed as orbital. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/Case_Study/journeytypetransfers.png}
+    \caption{The number of agents making different types of journeys and the number of required transfers for those journeys.}
+    \label{fig:transfers_type}
+\end{figure}
+% RESULTS
+Figure \ref{fig:transfers_type} highlights the number of transfers taken within each trip type for all trips involving a transfer. City trips are by far the most popular trip type, making up 69\% of all trips with transfers. Despite cross-city trips being less commonly taken, a greater proportion of them require at least two transfers, compared to orbital trips which are largely made with a single transfer. 
+
+To investigate where the travellers making transfers were coming from and heading to, stations in the network were classified as being "inner" or "outer", based on whether they were reachable within 20 minutes from Flinders Street Station. 70\% of journeys involving transfers were found to end in the city. For agents starting or ending in the city, 17\% travelled only within inner regions, while the remaining 83\% covering both inner and outer. For cross-city trips, 50\% covered both regions, while 42\% were in outer regions, and only 8\% were in inner only. Orbital trips exhibited a similar split, with 55\% in both regions, 39\% in outer regions, and only 6\% were inner only. 
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\linewidth]{images/Case_Study/city_loop_platform_transfers_geog.png}
+    \caption{A matrix representation of the number of transfers that occur between the 4 platforms of the City Loop stations with fixed platforms for different train groups}
+    \label{fig:platform_matrix}
+\end{figure}
+
+% RESULTS - CITY LOOPS
+\pagebreak{}
+To understand transfer behaviour and the implications for timetabling and station planning, platform transfer patterns were visualised in \Cref{fig:platform_matrix} for the CBD City Loop stations with fixed platforms for different train groups (as assigned in Appendix III). At Parliament, most transfers involved Platform 1, with the greatest number of agents transferring from Platform 3 to Platform 1. At Melbourne Central, there were fewer transfers and no clear trends. At Flagstaff, the greatest number of agents transferred from Platform 2 to Platform 3. 
+
+% DISCUSS TRANSFER MAP
+The results of both \Cref{fig:transfer-map} and \Cref{fig:platform_matrix} highlights that very few transfers are modelled for Melbourne Central Station. In the City Loop, Melbourne Central is between Flagstaff and Parliament, so the majority of optimal journey itineraries will prefer either Flagstaff or Parliament. The RAPTOR algorithm will always choose the earliest transfer opportunity in order to maximise available transfer time, which preferences Flagstaff and Parliament over Melbourne Central. However, actual passengers are unlikely to exhibit this extreme rationality for the most optimal travel route and instead tend to have personal preferences for different City Loop stations. % cite transfer dislike or preferences of certain places
+
+% discuss number of transfers per journey type 
+The high number of journeys starting or ending in the city in \Cref{fig:transfers_type} is likely due to the radial nature of the network. Orbital trips cover larger distances and take longer, and are therefore less time efficient than driving. However, there is still demand for orbital and cross-city trips. Orbital trips are largely completed with only one transfer, likely due to the limited options for transferring at outer stations. Melbourne's prospective Surburban Rail Loop project caters to these orbital trips, and would generally involve two transfers but provide a faster trip, as it doesn't require passengers to travel to the inner city before making a line transfer. 
+
+Transfer behaviour cannot be measured from O-D data or patronage volume information alone, and requires modelling of these datasets to interrogate. As transfer opportunities on the Melbourne train network become increasingly complex with the opening of the Melbourne Metro Tunnel and the prospective Suburban Rail Loop project, understanding transfer behaviours is essential to inform network and station design decisions. The impacts of different network configuration scenarios can be measured at the micro and macro scale. Network-wide impacts on station transfer volumes can be visualised as in \Cref{fig:transfer-map}. At a station level, platform transfer matrices such as \Cref{fig:platform_matrix} can provide further details of how these transfer volumes between different platforms change. 
+
+\section{Limitations}
+\subsection{Input Data}
+The robustness of results found in the case study is limited by the input data and processing choices. The input O-D and passenger counts data were found to be similar but not identical, limiting the validation process for the model output. The uncertainty surrounding the accuracy of the input data also limits the exact conclusions which can be drawn from these findings. However, they are likely indicative of broad trends and demonstrate WoB's capabilities for these use cases. 
+
+The two DTP datasets used, the input O-D and passenger counts data, were processed using TrainSUM to impute missing or unpaired trips. The rate of missing or unpaired trips TrainSUM had to impute was not stated. TrainSUM models journeys with at most 1 transfer, compared to WoB which allows up to 7, suggesting that these models will behave quite differently \cite{victoriandepartmentoftransportandplanningAnnualMetropolitanRegional2024}. However, the specific algorithms used by TrainSUM are unknown and therefore the implications of this processing on the datasets is unclear. Therefore, all the data used in this project was influenced by TrainSUM's processing, and ideally in future work, access to the actual raw O-D data would improve the handling of transfers. 
+
+Only a single normal Monday was modelled, which may not capture the nuances of variation in service demand across weekdays. Work completed in semester one found that the 2022-2023 financial year had lower patronage on Mondays and Fridays which would likely extend into the 2023-2024 financial year, due to the ongoing impact of changes to working from home patterns after the COVID-19 pandemic \cite{tranChangesPeakPeriods2024}. This limited the generalisability of these results, but provided a snapshot of the current period. 
+
+While the accuracy of the drawn results and conclusions was bounded by the limitations of the input data, this was not central to the project's aim of building a model that processes O-D data to quantify service level utilisation. Therefore, the results presented here are not intended to be an exhaustive measure of rail utilisation in Melbourne, but instead highlight the potential of WoB for transport modelling. 
+
+\subsection{Disruptions}
+Since the input O-D data is aggregated across each financial year, the impacts of scheduled disruptions cannot be accounted for. If there were extended periods of time with buses replacing trains, there would be lower demand recorded for those services, which, when applied to a normal timetable, would appear as if services were not particularly crowded. In actuality, some demand may have been suppressed due to the unavailability of the usual train services. Conversely, normal patronage demand data applied to a disrupted train schedule GTFS with reduced services, would assign a larger volume of people to fewer services, unrealistically increasing crowding. While September 9th, 2024 was chosen for this case study as there were no major planned disruptions due to Big Build works, there were still some disruptions in the evening. There is no definitive centralised source of public information on disruptions so there was no way to determine the confounding effects of these factors.
+
+Unplanned disruptions or delays are also not accounted for as WoB uses the planned timetable and not real-time vehicle movements. The assignment of journeys from smart card data to services may not reflect real journeys taken. The ability to account for cancellations or delays would enable more accurate measures of crowding as these events would shift demand to other services. 
+
+
+\subsection{Station Transfer Modelling}
+An additional limitation of the current setup of the model is the accuracy of how transfers are modelled. The minimum allowable transfer time was set to three minutes for all agents at all stations. WoB will not consider any trips where the next leg of the trip begins less than three minutes after the initial arrival time. However, depending on station layout and walking speed, there are multiple opportunities for cross-platform transfers which take less than three minutes. Further research into transfer behaviour would inform a more precise model of how transfers occur in the Melbourne network. 

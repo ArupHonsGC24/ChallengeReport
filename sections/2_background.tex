@@ -1,7 +1,61 @@
 \chapter{Background}
 \label{chap:Background}
 
-\section{Sample section}
-\label{sec:SampleSection}
-\subsection{Sample subsection}
+The PT service demand model presented in this work builds on many existing technical concepts. This section explores the background information required to understand the implementation of WoB. First, \Cref{sec:TransportModelling} unpacks the various ways transport systems are modelled for different purposes, \Cref{sec:Simulations} considers how simulation techniques can be used to analyse complex problems, \Cref{sec: GTFS} details how public transport networks can be represented digitally, and \Cref{sec:pathfindingalgorithms} outlines pathfinding algorithms that are capable of generating journey itineraries that traverse public transport networks.  
 
+\section{Traditional Transport Modelling}
+\label{sec:TransportModelling}
+Modelling complex transport systems is a very general problem, for which there is no single solution that can be applied without compromise. The overall goal of modelling transport is to enhance the understanding of a network to accurately test and predict scenarios. The more specific problem of "person travel" (as opposed to freight logistics) remains incredibly broad. One of the most generally applicable and widespread techniques is the Four-Step Forecasting Travel Model \cite{mcnallyFourStepModel2007}.
+
+\subsection{Four-Step Travel Model}
+The eponymous four steps are shown in \Cref{fig:four_step_model}.
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=0.75\columnwidth]{images/four_step_flow.svg}
+        \caption{Flow chart representing the steps of the four step travel model.}
+    \label{fig:four_step_model}
+\end{figure}
+
+\pagebreak
+Trip generation is the process of combining population and land use data and attempting to predict trips that the population takes across that region. For example, commuter trip patterns can be inferred from commercial and residential zoning patterns. The output of this step is sets of origins and destination locations weighted by some probability. 
+
+Trip distribution takes these origins and destinations and pairs them up probabilistically. There are various algorithms for performing this operation, but generally they are informed by the cost to travel between the two points and the activity purpose of the origin and destination.
+
+The mode choice step allocates the mode or modes (including road, rail, bus, walking, cycling, etc) that compose the trip. Usually, this is also represented as a probability distribution of all the trips between the origin and destination.
+
+In the final round, route assignment, the mode choice distributions are applied to the network itself, yielding a description and quantification of which routes and corridors are used by the modelled population.
+
+One of the key aspects of the four-step model is its self-feedback loop. Once the route assignment is complete, the congestion of the network becomes a known property. This means that the four steps can be run again, this time with network congestion influencing trip distribution and mode choice \cite{mcnallyFourStepModel2007}.
+
+However, as general as it appears to be, the four-step technique suffers from poor predictive outcomes when attempting to evaluate the effect of management and control policies, as opposed to expansion policies \cite{mcnallyFourStepModel2007}. While still in use today, the four-step model is generally used as a base architecture, from which many specialising parameters can be applied. A slightly more modern technique, activity-based modelling, was designed as an alternative \cite{mcnallyActivityBasedApproach2007}.
+
+\subsection{Activity-Based Modelling}
+An activity-based model is designed around the idea that travel is a means to an end, and that a more holistic approach that seeks to understand the activities that people travel for will provide a more accurate forecast of travel demand. To achieve this, activity-based models make use of insights from different fields, including behavioural psychology, to create a set of activities that people in a population participate in for a given period at a particular place. From there, patterns of behaviour can be translated into sequences of trips, which thus encode the scheduling of the undertaken activities \cite{mcnallyActivityBasedApproach2007}. Additionally, due to this construction, activity-based models can generally yield more detailed results by allowing analysis of trips per activity, rather than per destination.
+
+\subsection{Comparison to WoB}
+As an analogy for our model, the first three steps of the four-step model could be seen to be encapsulated by the input data, which is directly derived from the rail smart-card system rather than land use and demographics. As such, the modelled trips fall within a narrower spectrum, describing only a subset of the movements through the network. There is no mode choice decision either, as all trips are rail-based. WoB does not model activities specifically, which requires first generating the activities then deriving the trips. However, like an activity-based model, the model output is very detailed as individual trips are modelled separately rather than in aggregate.
+
+The pursuit of more and more detailed modelling techniques, building upon activity-based models and aided by the continuous exponential increases in computational power over the decades, has lead to the development of simulations as a viable modelling method.
+
+\section{Agent-Based Simulations}
+\label{sec:Simulations}
+The general technique of simulations involves the modelling of a system by applying the known rules of the system to a virtual, approximate representation of the system. This broad idea can be applied to many systems from many fields, including transport networks. Detailed transport simulations usually involve keeping records of individual decision-making entities, called "agents". These agents have defined behaviour, which constitutes some of the transport system's rules, in addition to the network layout and transport modes \cite{horniMultiAgentTransportSimulation2016}.
+
+Agent-based simulations have the advantage that they work at a smaller detail scale than other methods. Instead of modelling aggregate parameters, like total patronage or network throughput, these simulations track the properties of each individual agent, and therefore can output a record of the behaviour for each agent. As such, emergent behaviours that occur due to the large number of modelled interactions can be studied.
+
+\section{Timetabled Network Representation}
+\label{sec: GTFS}
+As described above, PT models that make use of simulation-based approaches require a representation of the timetabled network in computer memory. A key resource for working with PT networks is the General Transit Feed Specification (GTFS), a computer-readable format for defining a network layout and scheduled services on a timetable \cite{mobilitydataReferenceGeneralTransit2024}. A GTFS dataset is generally officially published by a management authority (such as Public Transport Victoria) and contains a record of all the stops, stop times, routes, trips and timetables by calendar day. 
+
+Each stop represents either a station or a platform within a station, depending on the dataset. Stop times are a single stop event in which a vehicle arrives and departs a stop. Trips are sequences of stop times, and represent a particular instance of a vehicle moving through the network. Routes are groups of trips categorised by stop sequences (i.e. all trips in a route visit the same stops in the same order, but at different times). Stops encode the user-facing and geographical information about the stops on the network, such as name and location.
+
+For a model to make use of a PT network representation, a specialised pathfinding algorithm is required to calculate specific paths through the network.
+
+\section{Pathfinding Algorithms}
+\label{sec:pathfindingalgorithms}
+In contrast to a standard graph network, which can use Djikstra's algorithm and variants thereof for pathfinding, the traversal of a PT network requires the use of specialised algorithms that run on a fixed timetable. There are many such algorithms described in the literature, such as Guidebook Routing \cite{bastFlowBasedGuidebookRouting2014} and the Connection Scanning Algorithm \cite{dibbeltIntriguinglySimpleFast2013}, each of which have different features and drawbacks, explored in detail in the semester one research report \cite{benjaminsutherlandSimulatingMelbournesMetropolitan2024}. 
+
+The Round-bAsed Public Transit Optimised Router (RAPTOR) algorithm was chosen for implementation in WoB \cite{dellingRoundBasedPublicTransit2012} for its ability to run on dynamic networks without preprocessing and its optimised runtime speed. For a given departure station and time, RAPTOR determines the minimum arrival time at each stop in the network by traversing each route on the first available trip over the course of a fixed number of rounds. During round zero, for each route that contains the departure stop the first trip that leaves the departure stop after the departure time is found. Starting at the departure stop, the arrival time at each subsequent stop in the trip is updated. After all relevant stops have been updated in this manner, subsequent rounds work similarly, this time using each updated stop in the previous round as the departure stations. Once no more stops are updated, or a fixed number of rounds has elapsed, the journey that arrives at the desired destination earliest is reconstructed and returned. The RAPTOR algorithm can be extended to perform multi-criteria queries, which allows optimising for more than just minimum arrival time. 
+
+\subsection{Implementation in WoB}
+WoB implements the RAPTOR algorithm to determine which services are used by a given agent. To model crowding effects, a key innovation of WoB is the use of the multi-criteria extension to optimise for both earliest arrival time and lowest crowding cost. 

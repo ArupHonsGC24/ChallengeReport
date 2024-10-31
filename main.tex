@@ -12,7 +12,7 @@
 \usepackage{amsmath}
 \usepackage{xfrac}
 \usepackage{graphicx}
-\usepackage{svg}
+\usepackage[inkscapelatex=false]{svg}
 \usepackage{xcolor}
 \usepackage{minted}
 \usepackage{siunitx}
@@ -23,8 +23,11 @@
 \usepackage{pgfplots}
 \usepackage{tikz}
 \usepackage{hyperref}
-\usepackage[all]{hypcap}
+\usepackage[hypcap=true]{caption}
 \usepackage[nameinlink]{cleveref}
+\usepackage{subcaption}
+\usepackage{csvsimple}
+%\usepackage{pdflscape}
 
 % Bibliography
 \addbibresource{references.bib}
@@ -34,8 +37,11 @@
 % Formating
 \DoubleSpacing
 \chapterstyle{bianchi}
-\setlrmarginsandblock{2.5cm}{2.5cm}{*}
-\setulmarginsandblock{2.5cm}{*}{1}
+\setlrmarginsandblock{2cm}{2cm}{*}
+\setulmarginsandblock{2cm}{*}{1}
+%\setheadfoot{29pt}{1\onelineskip}
+% Slightly increase top margin
+\setheaderspaces{*}{1.5\onelineskip}{*}
 \setlength{\beforechapskip}{-2cm}
 \newlength{\drop}
 \captionnamefont{\small}
@@ -48,12 +54,12 @@
 \graphicspath{ {./images/} }
 \hypersetup{hidelinks}
 \UseTblrLibrary{booktabs}
-\usetikzlibrary{tikzmark}
 \MakeOuterQuote{"}
 
-\pgfplotsset{width=10cm,compat=1.9}
 \usepgfplotslibrary{external}
-\tikzexternalize
+\pgfplotsset{width=10cm,compat=1.9}
+%\usetikzlibrary{external}
+%\tikzexternalize[prefix=tikz/]
 
 \crefname{algocf}{alg.}{algs.}
 \Crefname{algocf}{Algorithm}{Algorithms}
@@ -98,11 +104,14 @@
 
 % Use single spacing for TOC, LOF and LOT
 \SingleSpacing
-
+\cleardoublepage
+%\vspace*{-1\baselineskip}
 \tableofcontents*
 
+% For some reason, the LoF and LoT overlap without some help.
 \vspace{2.5cm}
 \listoffigures
+\pagebreak
 \vspace{1.5cm}
 \listoftables
 
@@ -114,6 +123,9 @@
 
 % Executive summary.
 \input{preamble/executive_summary}
+
+% Glossary.
+\input{preamble/glossary}
 
 % Use arabic numbering for main content.
 \mainmatter

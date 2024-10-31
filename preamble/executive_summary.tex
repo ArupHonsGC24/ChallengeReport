@@ -1,2 +1,9 @@
 \chapter{Executive Summary}
-\vspace{-0.5cm}
+\vspace{-2pt}
+As transport networks rapidly expand, the accurate simulation of the impacts of transport management policies becomes increasingly critical. Advancing transport modelling is essential to bolster data driven decision making approaches in the public transport sector to ensure cities keep pace with growing demand pressures now and into the future. 
+
+In this paper, we present the Who's on Board (WoB) rail service demand model, a novel tool to assign empirical origin-destination data to any timetabled network, producing meaningful service-level utilisation data. WoB implements an iterative replanning algorithm by pathfinding through public transport networks while optimising for multiple criteria, i.e. both travel time and perceived costs due to crowding. Passengers modelled as autonomous agents continuously reevaluate their journeys in rounds based on the network crowding from the previous round.
+
+With a focus on speed and simplicity, the model's ability to calculate service-specific utilisation data is demonstrated through a case study on the Melbourne metropolitan rail network. WoB is designed to be accessible for use on consumer hardware, illustrated by simulating the Melbourne network with close to 500,000 agents over 8 rounds of replanning in 30 seconds while only requiring 2.5GB of memory.
+
+WoB's service-level granularity down to the minute allows the interrogation of subtle patterns that emerge from the collective dynamics of individual agents, such as transfers between platforms. The effects of timetable alterations on network utilisation and crowding levels can be quickly and easily analysed, which allows for the fast iteration of ideas. As such, WoB provides a novel approach to modelling rail utilisation that forms the foundation of efforts to bolster understanding of intricate flows of passengers through public transport networks. 
